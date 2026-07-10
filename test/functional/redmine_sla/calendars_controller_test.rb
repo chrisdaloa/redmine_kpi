@@ -56,6 +56,14 @@ module RedmineSla
         get :show
         assert_response :success
       end
+
+      should "render the SLA admin tabs with the calendar tab selected" do
+        @request.session[:user_id] = User.find(1).id
+        get :show
+        assert_select "div.tabs a#tab-calendar.selected"
+        assert_select "div.tabs a#tab-general"
+        assert_select "div.tabs a#tab-rules"
+      end
     end
   end
 end

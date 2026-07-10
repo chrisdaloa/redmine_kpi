@@ -1,5 +1,7 @@
 <h2><%= l(:label_sla_calendar) %></h2>
 
+<%= sla_admin_tabs("calendar") unless @project %>
+
 <%= form_tag(@project ? project_sla_calendar_path(@project) : redmine_sla_calendar_path) do %>
 <div class="box tabular">
   <p><label><%= l(:label_sla_working_days) %></label></p>

@@ -13,6 +13,14 @@ class RedmineSlaGlobalSettingsTest < ActionController::TestCase
     assert_select "input[name=?]", "settings[risk_threshold_percent]"
   end
 
+  test "GET plugin renders the SLA admin tabs with the general tab selected" do
+    get :plugin, params: { id: "redmine_sla" }
+    assert_response :success
+    assert_select "div.tabs a#tab-general.selected"
+    assert_select "div.tabs a#tab-calendar"
+    assert_select "div.tabs a#tab-rules"
+  end
+
   test "POST plugin persists and coerces the submitted settings" do
     post :plugin, params: {
       id: "redmine_sla",

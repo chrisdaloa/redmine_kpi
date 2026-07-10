@@ -1,4 +1,4 @@
-class SeedDefaultSlaCalendar < ActiveRecord::Migration[8.1]
+class SeedDefaultSlaCalendar < ActiveRecord::Migration[7.2]
   def up
     return if RedmineSla::SlaCalendar.where(project_id: nil).exists?
 

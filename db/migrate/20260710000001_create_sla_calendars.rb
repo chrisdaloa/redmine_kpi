@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class CreateSlaCalendars < ActiveRecord::Migration[8.1]
+class CreateSlaCalendars < ActiveRecord::Migration[7.2]
   def change
     create_table :sla_calendars do |t|
       t.integer :project_id

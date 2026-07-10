@@ -57,6 +57,14 @@ module RedmineSla
         assert_response :success
       end
 
+      should "render the SLA admin tabs with the rules tab selected" do
+        @request.session[:user_id] = User.find(1).id
+        get :index
+        assert_select "div.tabs a#tab-rules.selected"
+        assert_select "div.tabs a#tab-general"
+        assert_select "div.tabs a#tab-calendar"
+      end
+
       should "POST create persist a global (project_id 0) rule for an admin" do
         @request.session[:user_id] = User.find(1).id
         post :create, params: {

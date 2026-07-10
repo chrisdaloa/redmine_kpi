@@ -1,5 +1,7 @@
 <h2><%= l(:label_sla_rules) %></h2>
 
+<%= sla_admin_tabs("rules") unless @project %>
+
 <table class="list">
   <thead>
     <tr>

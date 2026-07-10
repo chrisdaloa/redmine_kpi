@@ -29,6 +29,9 @@ Redmine::Plugin.register :redmine_sla do
   end
 
   menu :project_menu, :sla_settings, { controller: "redmine_sla/settings", action: "show" }, caption: :label_sla
+  menu :admin_menu, :sla_admin, { controller: "settings", action: "plugin", id: "redmine_sla" },
+       caption: :label_sla_configure,
+       html: { class: "icon icon-settings" }
 end
 
 # Redmine's own PluginLoader already loads init.rb from within a to_prepare
@@ -38,9 +41,11 @@ end
 # applied directly here instead.
 load File.join(__dir__, "lib/redmine_sla/patches/issue_patch.rb")
 load File.join(__dir__, "lib/redmine_sla/patches/journal_patch.rb")
+load File.join(__dir__, "lib/redmine_sla/patches/application_helper_patch.rb")
 
 Issue.include(RedmineSla::Patches::IssuePatch) unless Issue.include?(RedmineSla::Patches::IssuePatch)
 Journal.include(RedmineSla::Patches::JournalPatch) unless Journal.include?(RedmineSla::Patches::JournalPatch)
+ApplicationHelper.include(RedmineSla::Patches::ApplicationHelperPatch) unless ApplicationHelper.include?(RedmineSla::Patches::ApplicationHelperPatch)
 
 require File.join(__dir__, "lib/redmine_sla/view_hook")
 
