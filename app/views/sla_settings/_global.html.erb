@@ -1,0 +1,32 @@
+<p>
+  <label for="settings_risk_threshold_percent"><%= l(:field_sla_risk_threshold_percent) %></label>
+  <%= text_field_tag "settings[risk_threshold_percent]", settings["risk_threshold_percent"], size: 5 %> %
+</p>
+
+<p>
+  <label><%= l(:field_sla_resolved_status_ids) %></label><br>
+  <% IssueStatus.all.each do |status| %>
+    <label class="block">
+      <%= check_box_tag "settings[resolved_status_ids][]", status.id, settings["resolved_status_ids"].to_a.map(&:to_s).include?(status.id.to_s), id: nil %>
+      <%= status.name %>
+    </label>
+  <% end %>
+  <%= hidden_field_tag "settings[resolved_status_ids][]", "" %>
+</p>
+
+<p>
+  <label><%= l(:field_sla_pause_status_ids) %></label><br>
+  <% IssueStatus.all.each do |status| %>
+    <label class="block">
+      <%= check_box_tag "settings[pause_status_ids][]", status.id, settings["pause_status_ids"].to_a.map(&:to_s).include?(status.id.to_s), id: nil %>
+      <%= status.name %>
+    </label>
+  <% end %>
+  <%= hidden_field_tag "settings[pause_status_ids][]", "" %>
+</p>
+
+<p>
+  <%= link_to l(:label_sla_manage_calendar), redmine_sla_calendar_path %>
+  &nbsp;|&nbsp;
+  <%= link_to l(:label_sla_manage_rules), redmine_sla_rules_path %>
+</p>

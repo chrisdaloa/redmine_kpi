@@ -1,0 +1,26 @@
+<h2><%= l(:label_sla_calendar) %></h2>
+
+<%= form_tag(@project ? project_sla_calendar_path(@project) : redmine_sla_calendar_path) do %>
+<div class="box tabular">
+  <p><label><%= l(:label_sla_working_days) %></label></p>
+  <table>
+    <% (0..6).each do |wday| %>
+      <% day = @calendar.sla_calendar_days.find { |d| d.wday == wday } %>
+      <tr>
+        <td><%= check_box_tag "days[#{wday}][enabled]", "1", day.present? %></td>
+        <td><%= I18n.t("date.day_names")[wday] %></td>
+        <%= hidden_field_tag "days[#{wday}][wday]", wday %>
+        <td><%= text_field_tag "days[#{wday}][start]", day ? format_minutes(day.start_minute) : "09:00", size: 5 %></td>
+        <td>-</td>
+        <td><%= text_field_tag "days[#{wday}][end]", day ? format_minutes(day.end_minute) : "17:00", size: 5 %></td>
+      </tr>
+    <% end %>
+  </table>
+
+  <p>
+    <label for="holidays"><%= l(:label_sla_holidays) %></label><br>
+    <%= text_area_tag "holidays", @calendar.sla_holidays.map { |h| "#{h.date.iso8601},#{h.name}" }.join("\n"), rows: 6, cols: 40 %>
+  </p>
+</div>
+<p><%= submit_tag l(:button_save) %></p>
+<% end %>

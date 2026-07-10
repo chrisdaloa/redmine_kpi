@@ -1,0 +1,109 @@
+name: build
+on:
+  push:
+    branches:
+      - '**'
+    paths-ignore:
+      - 'README.md'
+      - '.devcontainer/**'
+      - '.claude/**'
+      - '**/*.md'
+      - 'docs/**'
+      - '.vscode/**'
+      - 'LICENSE'
+      - '.gitignore'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/*.md'
+      - 'version.rb'
+  pull_request:
+    branches:
+      - '**'
+    paths-ignore:
+      - 'README.md'
+      - '.devcontainer/**'
+      - '.claude/**'
+      - '**/*.md'
+      - 'docs/**'
+      - '.vscode/**'
+      - 'LICENSE'
+      - '.gitignore'
+      - '.github/ISSUE_TEMPLATE/**'
+      - '.github/*.md'
+      - 'version.rb'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    container:
+      image: ruby:3.4
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install RuboCop
+        run: gem install rubocop rubocop-rails rubocop-performance rubocop-factory_bot
+      - name: RuboCop
+        run: rubocop
+
+  build:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    # Supported Matrix:
+    # Redmine 6.0-stable: Ruby 3.1, 3.2, 3.3
+    # Redmine 6.1-stable: Ruby 3.2, 3.3, 3.4
+    # Redmine 7.0-stable: Ruby 3.2, 3.3, 3.4, 4.0
+    # Redmine master: Ruby 3.2, 3.3, 3.4, 4.0
+    strategy:
+      max-parallel: 10
+      matrix:
+        db: [sqlite3, mysql, postgres]
+        ruby_version: ["3.1", "3.2", "3.3", "3.4", "4.0"]
+        redmine_version: [6.0-stable, 6.1-stable, 7.0-stable, master]
+        exclude:
+          - ruby_version: "3.4"
+            redmine_version: 6.0-stable
+          - ruby_version: "4.0"
+            redmine_version: 6.0-stable
+          - ruby_version: "3.1"
+            redmine_version: 6.1-stable
+          - ruby_version: "4.0"
+            redmine_version: 6.1-stable
+          - ruby_version: "3.1"
+            redmine_version: 7.0-stable
+          - ruby_version: "3.1"
+            redmine_version: master
+    services:
+      mysql:
+        image: mysql:8.1
+        options: --health-cmd "mysqladmin ping -h localhost" --health-interval 20s --health-timeout 10s --health-retries 10
+        env:
+          MYSQL_ROOT_PASSWORD: dbpassword
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: root
+          POSTGRES_PASSWORD: dbpassword
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    container:
+      image: ruby:${{ matrix.ruby_version }}
+      env:
+        DB: ${{ matrix.db }}
+        DB_USERNAME: root
+        DB_PASSWORD: dbpassword
+        DB_HOST: ${{ matrix.db }}
+        REDMINE_VER: ${{ matrix.redmine_version }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install
+        run: bash -x ./.github/build-scripts/install.sh
+      - name: Test Migration Rollback
+        run: bash -x ./.github/build-scripts/test-migration-rollback.sh
+      - name: Build
+        run: bash -x ./.github/build-scripts/build.sh
+      - name: Clean
+        run: bash -x ./.github/build-scripts/cleanup.sh

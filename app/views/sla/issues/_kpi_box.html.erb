@@ -1,0 +1,36 @@
+<% if project && project.module_enabled?(:sla) && User.current.allowed_to?(:view_sla, project) && issue.sla_metric %>
+  <% metric = issue.sla_metric %>
+  <div class="box sla-kpi-box">
+    <h3><%= l(:label_sla_kpi_box_title) %></h3>
+    <table class="list">
+      <thead>
+        <tr>
+          <th><%= l(:field_sla_kpi) %></th>
+          <th><%= l(:field_sla_due_at) %></th>
+          <th><%= l(:field_sla_reached_at) %></th>
+          <th><%= l(:label_sla_status) %></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% RedmineSla::SlaRule::KPIS.each do |kpi| %>
+          <% due_at = metric.public_send("#{kpi}_due_at") %>
+          <% reached_at = metric.public_send("#{kpi}_reached_at") %>
+          <% next if due_at.nil? && reached_at.nil? %>
+          <% status = RedmineSla::KpiStatus.for(
+               due_at: due_at,
+               risk_at: metric.public_send("#{kpi}_risk_at"),
+               reached_at: reached_at,
+               paused: metric.paused_since.present?
+             ) %>
+          <% icon = { breached: "close", at_risk: "warning", paused: "time" }.fetch(status, "checked") %>
+          <tr>
+            <td><%= l("label_sla_kpi_#{kpi}") %></td>
+            <td><%= due_at ? format_time(due_at) : "-" %></td>
+            <td><%= reached_at ? format_time(reached_at) : "-" %></td>
+            <td><%= sprite_icon(icon, l("label_sla_status_#{status}")) %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% end %>

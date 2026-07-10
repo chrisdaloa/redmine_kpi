@@ -1,0 +1,55 @@
+<h2><%= l(:label_sla_settings) %></h2>
+
+<%= form_tag(project_sla_settings_path(@project)) do %>
+<div class="box tabular">
+  <p>
+    <label>
+      <%= check_box_tag "override_risk_threshold_percent", "1", @setting.risk_threshold_percent.present? %>
+      <%= l(:label_sla_override_project_setting) %>
+    </label><br>
+    <label for="risk_threshold_percent"><%= l(:field_sla_risk_threshold_percent) %></label>
+    <%= text_field_tag "risk_threshold_percent", @setting.risk_threshold_percent || @resolver.risk_threshold_percent, size: 5 %> %
+  </p>
+
+  <p>
+    <label>
+      <%= check_box_tag "override_resolved_status_ids", "1", !@setting.resolved_status_ids.nil? %>
+      <%= l(:label_sla_override_project_setting) %>
+    </label><br>
+    <label><%= l(:field_sla_resolved_status_ids) %></label><br>
+    <% resolved_ids = (@setting.resolved_status_ids || @resolver.resolved_status_ids).map(&:to_s) %>
+    <% IssueStatus.all.each do |status| %>
+      <label class="block">
+        <%= check_box_tag "resolved_status_ids[]", status.id, resolved_ids.include?(status.id.to_s), id: nil %>
+        <%= status.name %>
+      </label>
+    <% end %>
+    <%= hidden_field_tag "resolved_status_ids[]", "" %>
+  </p>
+
+  <p>
+    <label>
+      <%= check_box_tag "override_pause_status_ids", "1", !@setting.pause_status_ids.nil? %>
+      <%= l(:label_sla_override_project_setting) %>
+    </label><br>
+    <label><%= l(:field_sla_pause_status_ids) %></label><br>
+    <% pause_ids = (@setting.pause_status_ids || @resolver.pause_status_ids).map(&:to_s) %>
+    <% IssueStatus.all.each do |status| %>
+      <label class="block">
+        <%= check_box_tag "pause_status_ids[]", status.id, pause_ids.include?(status.id.to_s), id: nil %>
+        <%= status.name %>
+      </label>
+    <% end %>
+    <%= hidden_field_tag "pause_status_ids[]", "" %>
+  </p>
+</div>
+<p><%= submit_tag l(:button_save) %></p>
+<% end %>
+
+<p>
+  <%= link_to l(:label_sla_manage_calendar), project_sla_calendar_path(@project) %>
+  &nbsp;|&nbsp;
+  <%= link_to l(:label_sla_manage_rules), project_sla_rules_path(@project) %>
+  &nbsp;|&nbsp;
+  <%= button_to l(:label_sla_recalculate), project_sla_recalculation_path(@project), method: :post %>
+</p>
