@@ -1,6 +1,6 @@
 # Redmine SLA Plugin
 
-[![build](https://github.com/chrisdaloa/redmine_sla/actions/workflows/build.yml/badge.svg)](https://github.com/yourname/redmine_sla/actions/workflows/build.yml)
+[![build](https://github.com/chrisdaloa/redmine_sla/actions/workflows/build.yml/badge.svg)](https://github.com/chrisdaloa/redmine_sla/actions/workflows/build.yml)
 ![Redmine](https://img.shields.io/badge/redmine->=6.0-blue?logo=redmine&logoColor=%23B32024&labelColor=f0f0f0&link=https%3A%2F%2Fwww.redmine.org)
 
 A Redmine plugin that tracks helpdesk SLA/KPI metrics: acknowledgement, first response and resolution times, measured against a configurable business calendar and per-project/tracker/priority rules.
