@@ -47,7 +47,7 @@ module RedmineSla
     end
 
     def rule_params
-      params.expect(sla_rule: [ :kpi, :tracker_id, :priority_id, :target_minutes ])
+      params.require(:sla_rule).permit(:kpi, :tracker_id, :priority_id, :target_minutes)
     end
 
     def redirect_to_index

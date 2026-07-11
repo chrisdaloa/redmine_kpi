@@ -1,3 +1,5 @@
+<%= sla_admin_tabs("general") %>
+
 <p>
   <label for="settings_risk_threshold_percent"><%= l(:field_sla_risk_threshold_percent) %></label>
   <%= text_field_tag "settings[risk_threshold_percent]", settings["risk_threshold_percent"], size: 5 %> %
@@ -23,10 +25,4 @@
     </label>
   <% end %>
   <%= hidden_field_tag "settings[pause_status_ids][]", "" %>
-</p>
-
-<p>
-  <%= link_to l(:label_sla_manage_calendar), redmine_sla_calendar_path %>
-  &nbsp;|&nbsp;
-  <%= link_to l(:label_sla_manage_rules), redmine_sla_rules_path %>
 </p>

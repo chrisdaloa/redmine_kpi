@@ -28,6 +28,7 @@ en:
   label_sla_calendar: "SLA calendar"
   label_sla_rules: "SLA rules"
   label_sla_settings: "SLA settings"
+  label_sla_configure: "Configure SLA"
   label_sla_override_project_setting: "Override the global value"
   label_sla_add_rule: "Add rule"
   label_sla_add_holiday: "Add holiday"

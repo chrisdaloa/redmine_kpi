@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class CreateSlaRules < ActiveRecord::Migration[8.1]
+class CreateSlaRules < ActiveRecord::Migration[7.2]
   def change
     create_table :sla_rules do |t|
       t.integer :project_id, null: false, default: 0

@@ -1,4 +1,4 @@
-class CreateSlaIssueMetrics < ActiveRecord::Migration[8.1]
+class CreateSlaIssueMetrics < ActiveRecord::Migration[7.2]
   def change
     create_table :sla_issue_metrics do |t|
       t.integer :issue_id, null: false
