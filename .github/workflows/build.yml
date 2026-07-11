@@ -97,6 +97,7 @@ jobs:
         DB_PASSWORD: dbpassword
         DB_HOST: ${{ matrix.db }}
         REDMINE_VER: ${{ matrix.redmine_version }}
+        NAME_OF_PLUGIN: redmine_sla
     steps:
       - uses: actions/checkout@v7
       - name: Install
