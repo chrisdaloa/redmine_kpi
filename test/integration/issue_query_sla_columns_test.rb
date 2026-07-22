@@ -5,6 +5,8 @@ require_relative "../test_helper"
 class RedmineSla::IssueQuerySlaColumnsTest < ActiveSupport::TestCase
   def setup
     @project = Project.find(1)
+    @project.enabled_module_names += [ "sla" ]
+    Role.anonymous.add_permission!(:view_sla)
 
     calendar = create(:sla_calendar, project_id: nil)
     (1..5).each { |wday| create(:sla_calendar_day, sla_calendar: calendar, wday: wday, start_minute: 540, end_minute: 1020) }

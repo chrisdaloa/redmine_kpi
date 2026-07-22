@@ -37,6 +37,34 @@ module RedmineSla
         assert_equal "Christmas", calendar.sla_holidays.first.name
       end
 
+      should "POST update persist a lunch break when both break times are given" do
+        post :update, params: {
+          id: @project.id,
+          days: {
+            "1" => { wday: "1", enabled: "1", start: "09:00", end: "18:00", break_start: "13:00", break_end: "14:00" }
+          },
+          holidays: ""
+        }
+
+        day = RedmineSla::SlaCalendar.find_by(project_id: @project.id).sla_calendar_days.first
+        assert_equal 780, day.break_start_minute
+        assert_equal 840, day.break_end_minute
+      end
+
+      should "POST update leave the break unset when the break fields are blank" do
+        post :update, params: {
+          id: @project.id,
+          days: {
+            "1" => { wday: "1", enabled: "1", start: "09:00", end: "18:00", break_start: "", break_end: "" }
+          },
+          holidays: ""
+        }
+
+        day = RedmineSla::SlaCalendar.find_by(project_id: @project.id).sla_calendar_days.first
+        assert_nil day.break_start_minute
+        assert_nil day.break_end_minute
+      end
+
       should "deny access without manage_sla_settings permission" do
         Role.find(1).remove_permission!(:manage_sla_settings)
         get :show, params: { id: @project.id }

@@ -21,6 +21,22 @@ module RedmineSla
       normalize_ids(project_setting&.pause_status_ids || global_settings["pause_status_ids"])
     end
 
+    def attesa_cliente_status_ids
+      normalize_ids(project_setting&.attesa_cliente_status_ids || global_settings["attesa_cliente_status_ids"])
+    end
+
+    def attesa_interna_status_ids
+      normalize_ids(project_setting&.attesa_interna_status_ids || global_settings["attesa_interna_status_ids"])
+    end
+
+    def categoria_custom_field_id
+      global_settings["categoria_custom_field_id"].presence&.to_i
+    end
+
+    def responsabile_custom_field_id
+      global_settings["responsabile_custom_field_id"].presence&.to_i
+    end
+
     private
 
     def normalize_ids(ids)

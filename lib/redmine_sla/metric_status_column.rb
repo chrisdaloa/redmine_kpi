@@ -8,6 +8,10 @@ module RedmineSla
     end
 
     def value_object(issue)
+      project = issue.project
+      return nil unless project && project.module_enabled?(:sla) &&
+        User.current.allowed_to?(:view_sla, project)
+
       metric = issue.sla_metric
       status = RedmineSla::KpiStatus.for(
         due_at: metric&.public_send(:"#{@kpi}_due_at"),

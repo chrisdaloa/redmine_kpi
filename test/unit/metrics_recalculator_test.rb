@@ -15,7 +15,9 @@ class RedmineSla::MetricsRecalculatorTest < ActiveSupport::TestCase
     Setting.plugin_redmine_sla = {
       "risk_threshold_percent" => 50,
       "resolved_status_ids" => [ 3, 5 ],
-      "pause_status_ids" => [ 4 ]
+      "pause_status_ids" => [ 4 ],
+      "attesa_cliente_status_ids" => [ 10 ],
+      "attesa_interna_status_ids" => [ 11 ]
     }
 
     calendar = create(:sla_calendar, project_id: nil)
@@ -71,6 +73,38 @@ class RedmineSla::MetricsRecalculatorTest < ActiveSupport::TestCase
       assert_equal 1, metric.initial_status_id
       assert_equal local(2026, 7, 1, 10, 0), metric.acknowledgement_reached_at
       assert_equal local(2026, 7, 1, 11, 0), metric.acknowledgement_due_at
+    end
+  end
+
+  context "acknowledgement_elapsed_minutes" do
+    should "be nil when acknowledgement has not been reached yet" do
+      issue = create(:issue, created_on: created_at)
+
+      metric = recalculate(issue)
+
+      assert_nil metric.acknowledgement_elapsed_minutes
+    end
+
+    should "be the business-hours elapsed time between creation and the first status change" do
+      issue = create(:issue, created_on: created_at)
+      status_change(issue, at: local(2026, 7, 1, 10, 0), from: 1, to: 2)
+      issue.update_column(:status_id, 2)
+
+      metric = recalculate(issue)
+
+      assert_equal 60, metric.acknowledgement_elapsed_minutes
+    end
+
+    should "be nil when no calendar is configured, even though acknowledgement was reached" do
+      status_change_at = local(2026, 7, 1, 10, 0)
+      issue = create(:issue, created_on: created_at)
+      status_change(issue, at: status_change_at, from: 1, to: 2)
+      issue.update_column(:status_id, 2)
+      RedmineSla::SlaCalendar.destroy_all
+
+      metric = recalculate(issue)
+
+      assert_nil metric.acknowledgement_elapsed_minutes
     end
   end
 
@@ -145,6 +179,74 @@ class RedmineSla::MetricsRecalculatorTest < ActiveSupport::TestCase
       assert_equal local(2026, 7, 1, 9, 30), metric.paused_since
       assert_equal 0, metric.total_paused_minutes
       assert_equal local(2026, 7, 1, 11, 0), metric.acknowledgement_due_at
+    end
+  end
+
+  context "attesa cliente / attesa interna" do
+    should "accumulate business-hours minutes from completed episodes and clear the since marker" do
+      issue = create(:issue, created_on: created_at)
+
+      status_change(issue, at: local(2026, 7, 1, 9, 30), from: 1, to: 10)
+      status_change(issue, at: local(2026, 7, 1, 10, 0), from: 10, to: 2)
+      issue.update_column(:status_id, 2)
+
+      metric = recalculate(issue)
+
+      assert_equal 30, metric.attesa_cliente_minutes
+      assert_nil metric.attesa_cliente_since
+    end
+
+    should "leave the since marker set and not yet count minutes for a still-open episode" do
+      issue = create(:issue, created_on: created_at)
+
+      status_change(issue, at: local(2026, 7, 1, 9, 30), from: 1, to: 10)
+      issue.update_column(:status_id, 10)
+
+      metric = recalculate(issue)
+
+      assert_equal local(2026, 7, 1, 9, 30), metric.attesa_cliente_since
+      assert_equal 0, metric.attesa_cliente_minutes
+    end
+
+    should "not shift due_at, since attesa is purely informational" do
+      issue = create(:issue, created_on: created_at)
+
+      status_change(issue, at: local(2026, 7, 1, 9, 30), from: 1, to: 10)
+      status_change(issue, at: local(2026, 7, 1, 10, 0), from: 10, to: 2)
+      issue.update_column(:status_id, 2)
+
+      metric = recalculate(issue)
+
+      assert_equal local(2026, 7, 1, 11, 0), metric.acknowledgement_due_at
+    end
+
+    should "track attesa interna independently from attesa cliente" do
+      issue = create(:issue, created_on: created_at)
+
+      status_change(issue, at: local(2026, 7, 1, 9, 30), from: 1, to: 11)
+      status_change(issue, at: local(2026, 7, 1, 10, 15), from: 11, to: 2)
+      issue.update_column(:status_id, 2)
+
+      metric = recalculate(issue)
+
+      assert_equal 45, metric.attesa_interna_minutes
+      assert_nil metric.attesa_interna_since
+      assert_equal 0, metric.attesa_cliente_minutes
+      assert_nil metric.attesa_cliente_since
+    end
+
+    should "not raise and count zero minutes for a completed episode when no calendar is configured" do
+      issue = create(:issue, created_on: created_at)
+
+      status_change(issue, at: local(2026, 7, 1, 9, 30), from: 1, to: 10)
+      status_change(issue, at: local(2026, 7, 1, 10, 0), from: 10, to: 2)
+      issue.update_column(:status_id, 2)
+      RedmineSla::SlaCalendar.destroy_all
+
+      metric = recalculate(issue)
+
+      assert_equal 0, metric.attesa_cliente_minutes
+      assert_nil metric.attesa_cliente_since
     end
   end
 

@@ -71,5 +71,17 @@ class RedmineSla::SlaCalendarTest < ActiveSupport::TestCase
       result = business_calendar.add_working_minutes(Time.zone.local(2026, 7, 6, 8, 0), 30)
       assert_equal Time.zone.local(2026, 7, 13, 9, 30), result
     end
+
+    should "split a day's segments around its configured lunch break" do
+      calendar = create(:sla_calendar)
+      create(:sla_calendar_day, sla_calendar: calendar, wday: 1, start_minute: 540, end_minute: 1080,
+        break_start_minute: 780, break_end_minute: 840)
+
+      business_calendar = calendar.business_calendar
+      # Monday 12:00 -> 60 min available before the 13:00 break, 30 min
+      # remaining skips the break and lands at 14:30.
+      result = business_calendar.add_working_minutes(Time.zone.local(2026, 7, 6, 12, 0), 90)
+      assert_equal Time.zone.local(2026, 7, 6, 14, 30), result
+    end
   end
 end

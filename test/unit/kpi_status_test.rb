@@ -66,4 +66,34 @@ class RedmineSla::KpiStatusTest < ActiveSupport::TestCase
       assert_equal :breached, status
     end
   end
+
+  context ".worst" do
+    should "prioritize :breached over any other status" do
+      assert_equal :breached, RedmineSla::KpiStatus.worst([ :on_time, :at_risk, :breached ])
+    end
+
+    should "prioritize :at_risk over :paused, :on_time and :not_tracked" do
+      assert_equal :at_risk, RedmineSla::KpiStatus.worst([ :not_tracked, :on_time, :paused, :at_risk ])
+    end
+
+    should "prioritize :paused over :on_time and :not_tracked" do
+      assert_equal :paused, RedmineSla::KpiStatus.worst([ :paused, :on_time ])
+    end
+
+    should "prioritize :on_time over :not_tracked" do
+      assert_equal :on_time, RedmineSla::KpiStatus.worst([ :not_tracked, :on_time ])
+    end
+
+    should "return :not_tracked when every status is :not_tracked" do
+      assert_equal :not_tracked, RedmineSla::KpiStatus.worst([ :not_tracked, :not_tracked ])
+    end
+
+    should "return :not_tracked for an empty list" do
+      assert_equal :not_tracked, RedmineSla::KpiStatus.worst([])
+    end
+
+    should "not depend on the order of the statuses" do
+      assert_equal :breached, RedmineSla::KpiStatus.worst([ :at_risk, :breached, :paused ])
+    end
+  end
 end

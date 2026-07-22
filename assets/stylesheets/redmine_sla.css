@@ -1,0 +1,36 @@
+/* Colors reuse Redmine's own Open Color design tokens (--oc-*), matching the
+   semantics already used elsewhere in core: green for done/closed, orange for
+   warning, red for overdue, grey for closed/inactive. */
+.sla-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.sla-progress-track {
+  display: inline-block;
+  inline-size: 60px;
+  block-size: 0.7em;
+  background: var(--oc-gray-3, #dee2e6);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.sla-progress-fill {
+  display: block;
+  block-size: 100%;
+  border-radius: 3px;
+}
+
+/* The var() fallback (Open Color's own value) covers themes where --oc-*
+   custom properties aren't in scope on this page, e.g. because the theme's
+   own stylesheet pulls them in via a broken runtime @import. */
+.sla-progress-on_time .sla-progress-fill { background: var(--oc-green-7, #37b24d); }
+.sla-progress-at_risk .sla-progress-fill { background: var(--oc-orange-6, #fd7e14); }
+.sla-progress-breached .sla-progress-fill { background: var(--oc-red-9, #c92a2a); }
+.sla-progress-paused .sla-progress-fill { background: var(--oc-gray-5, #adb5bd); }
+
+.sla-progress-label {
+  font-size: 0.9em;
+}

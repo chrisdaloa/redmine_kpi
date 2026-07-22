@@ -15,7 +15,11 @@ Redmine::Plugin.register :redmine_sla do
   settings partial: "sla_settings/global", default: {
     "risk_threshold_percent" => 80,
     "resolved_status_ids" => [],
-    "pause_status_ids" => []
+    "pause_status_ids" => [],
+    "attesa_cliente_status_ids" => [],
+    "attesa_interna_status_ids" => [],
+    "categoria_custom_field_id" => "",
+    "responsabile_custom_field_id" => ""
   }
 
   project_module :sla do
@@ -42,10 +46,12 @@ end
 load File.join(__dir__, "lib/redmine_sla/patches/issue_patch.rb")
 load File.join(__dir__, "lib/redmine_sla/patches/journal_patch.rb")
 load File.join(__dir__, "lib/redmine_sla/patches/application_helper_patch.rb")
+load File.join(__dir__, "lib/redmine_sla/patches/issue_query_patch.rb")
 
 Issue.include(RedmineSla::Patches::IssuePatch) unless Issue.include?(RedmineSla::Patches::IssuePatch)
 Journal.include(RedmineSla::Patches::JournalPatch) unless Journal.include?(RedmineSla::Patches::JournalPatch)
 ApplicationHelper.include(RedmineSla::Patches::ApplicationHelperPatch) unless ApplicationHelper.include?(RedmineSla::Patches::ApplicationHelperPatch)
+IssueQuery.prepend(RedmineSla::Patches::IssueQueryPatch) unless IssueQuery.ancestors.include?(RedmineSla::Patches::IssueQueryPatch)
 
 require File.join(__dir__, "lib/redmine_sla/view_hook")
 
@@ -70,4 +76,58 @@ RedmineSla::SlaRule::KPIS.each do |kpi|
       caption: -> { "#{I18n.t(:"label_sla_kpi_#{kpi}")} #{I18n.t(:label_sla_status).downcase}" }
     )
   )
+end
+
+overall_status_column_name = :sla_overall_status
+unless IssueQuery.available_columns.any? { |column| column.name == overall_status_column_name }
+  IssueQuery.add_available_column(
+    RedmineSla::OverallStatusColumn.new(caption: :label_sla_overall_status_column)
+  )
+end
+
+{
+  sla_categoria: [ :categoria_custom_field_id, :label_sla_categoria ],
+  sla_responsabile: [ :responsabile_custom_field_id, :label_sla_responsabile ]
+}.each do |column_name, (setting_method, caption)|
+  next if IssueQuery.available_columns.any? { |column| column.name == column_name }
+
+  IssueQuery.add_available_column(
+    RedmineSla::ProjectCustomFieldColumn.new(column_name, setting_method, caption: caption)
+  )
+end
+
+elapsed_hours_column_name = :sla_acknowledgement_elapsed_hours
+unless IssueQuery.available_columns.any? { |column| column.name == elapsed_hours_column_name }
+  IssueQuery.add_available_column(
+    RedmineSla::ElapsedHoursColumn.new(
+      caption: :label_sla_acknowledgement_elapsed_hours,
+      sortable: "(SELECT acknowledgement_elapsed_minutes FROM sla_issue_metrics WHERE sla_issue_metrics.issue_id = #{Issue.table_name}.id)"
+    )
+  )
+end
+
+{
+  attesa_cliente: :label_sla_attesa_cliente_hours,
+  attesa_interna: :label_sla_attesa_interna_hours
+}.each do |kind, caption|
+  column_name = :"sla_#{kind}_hours"
+  next if IssueQuery.available_columns.any? { |column| column.name == column_name }
+
+  IssueQuery.add_available_column(
+    RedmineSla::AttesaHoursColumn.new(
+      kind,
+      caption: caption,
+      sortable: "(SELECT #{kind}_minutes FROM sla_issue_metrics WHERE sla_issue_metrics.issue_id = #{Issue.table_name}.id)"
+    )
+  )
+end
+
+{
+  acknowledgement: :label_sla_acknowledgement_progress,
+  resolution: :label_sla_resolution_progress
+}.each do |kpi, caption|
+  column_name = :"sla_#{kpi}_progress"
+  next if IssueQuery.available_columns.any? { |column| column.name == column_name }
+
+  IssueQuery.add_available_column(RedmineSla::SlaProgressColumn.new(kpi, caption: caption))
 end

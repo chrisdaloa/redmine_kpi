@@ -9,7 +9,9 @@ module RedmineSla
   # Assumption: no DST handling. A calendar spanning a DST transition may be
   # off by up to 60 minutes. Accepted limitation for v1.
   class BusinessCalendar
-    # working_hours: Hash{wday(0-6) => [start_minute, end_minute]} (minutes since midnight).
+    # working_hours: Hash{wday(0-6) => Array<[start_minute, end_minute]>} (minutes
+    # since midnight). Each day's segments must be sorted and non-overlapping; a
+    # day with more than one segment has a break (e.g. lunch) between them.
     # Absence of a wday key means that day is not a working day.
     # holidays: Enumerable of Date.
     def initialize(working_hours:, holidays: [])
@@ -21,11 +23,12 @@ module RedmineSla
       cursor = first_working_instant(start_at)
       remaining = minutes
       loop do
-        available = ((window_end(cursor) - cursor) / 60).to_i
+        segment_end = current_segment_end(cursor)
+        available = ((segment_end - cursor) / 60).to_i
         return cursor + remaining.minutes if remaining <= available
 
         remaining -= available
-        cursor = first_working_instant(cursor.midnight + 1.day)
+        cursor = first_working_instant(segment_end)
       end
     end
 
@@ -33,18 +36,20 @@ module RedmineSla
       total = 0
       cursor = start_at
       while cursor < end_at
-        window = @working_hours[cursor.wday]
-        if window.nil? || @holidays.include?(cursor.to_date)
+        segments = @working_hours[cursor.wday]
+        if segments.blank? || @holidays.include?(cursor.to_date)
           cursor = cursor.midnight + 1.day
           next
         end
 
-        day_start = cursor.midnight + window[0].minutes
-        day_end = cursor.midnight + window[1].minutes
-        segment_start = [ cursor, day_start ].max
-        segment_end = [ end_at, day_end ].min
+        segments.each do |start_minute, end_minute|
+          day_start = cursor.midnight + start_minute.minutes
+          day_end = cursor.midnight + end_minute.minutes
+          segment_start = [ cursor, day_start ].max
+          segment_end = [ end_at, day_end ].min
 
-        total += ((segment_end - segment_start) / 60).to_i if segment_end > segment_start
+          total += ((segment_end - segment_start) / 60).to_i if segment_end > segment_start
+        end
         cursor = cursor.midnight + 1.day
       end
       total
@@ -54,27 +59,39 @@ module RedmineSla
 
     def first_working_instant(instant)
       loop do
-        window = @working_hours[instant.wday]
-        if window.nil? || @holidays.include?(instant.to_date)
+        segments = @working_hours[instant.wday]
+        if segments.blank? || @holidays.include?(instant.to_date)
           instant = instant.midnight + 1.day
           next
         end
 
-        day_start = instant.midnight + window[0].minutes
-        day_end = instant.midnight + window[1].minutes
-        return day_start if instant < day_start
-        if instant >= day_end
-          instant = instant.midnight + 1.day
-          next
-        end
+        landed = landing_instant(instant, segments)
+        return landed if landed
 
-        return instant
+        instant = instant.midnight + 1.day
       end
     end
 
-    def window_end(instant)
-      window = @working_hours.fetch(instant.wday)
-      instant.midnight + window[1].minutes
+    # Given an instant already known to fall on a working day, finds where it
+    # lands within that day's segments: snapped forward to the next segment
+    # start if it's in a gap (e.g. a lunch break), left as-is if it's already
+    # inside a segment, or nil if it's past the day's last segment.
+    def landing_instant(instant, segments)
+      segments.each do |start_minute, end_minute|
+        day_start = instant.midnight + start_minute.minutes
+        day_end = instant.midnight + end_minute.minutes
+        return day_start if instant < day_start
+        return instant if instant < day_end
+      end
+      nil
+    end
+
+    def current_segment_end(instant)
+      segments = @working_hours.fetch(instant.wday)
+      _, end_minute = segments.find do |start_minute, seg_end_minute|
+        instant >= instant.midnight + start_minute.minutes && instant < instant.midnight + seg_end_minute.minutes
+      end
+      instant.midnight + end_minute.minutes
     end
   end
 end

@@ -34,6 +34,34 @@ module RedmineSla
       assert_nil setting.pause_status_ids
     end
 
+    test "POST update with attesa overrides enabled persists project overrides" do
+      post :update, params: {
+        id: @project.id,
+        override_attesa_cliente_status_ids: "1",
+        attesa_cliente_status_ids: [ "3" ],
+        override_attesa_interna_status_ids: "1",
+        attesa_interna_status_ids: [ "4", "5" ]
+      }
+
+      assert_redirected_to project_sla_settings_path(@project)
+      setting = RedmineSla::SlaProjectSetting.find_by(project_id: @project.id)
+      assert_equal [ 3 ], setting.attesa_cliente_status_ids.map(&:to_i)
+      assert_equal [ 4, 5 ], setting.attesa_interna_status_ids.map(&:to_i)
+    end
+
+    test "POST update without attesa overrides leaves them nil (inherit)" do
+      post :update, params: {
+        id: @project.id,
+        override_attesa_cliente_status_ids: "0",
+        override_attesa_interna_status_ids: "0"
+      }
+
+      assert_redirected_to project_sla_settings_path(@project)
+      setting = RedmineSla::SlaProjectSetting.find_by(project_id: @project.id)
+      assert_nil setting.attesa_cliente_status_ids
+      assert_nil setting.attesa_interna_status_ids
+    end
+
     test "a user without manage_sla_settings permission is denied" do
       Role.find(1).remove_permission!(:manage_sla_settings)
       get :show, params: { id: @project.id }

@@ -32,5 +32,52 @@ class RedmineSla::SlaCalendarDayTest < ActiveSupport::TestCase
       day = build(:sla_calendar_day, start_minute: 600, end_minute: 600)
       assert_not day.valid?
     end
+
+    should "be valid with a break fully inside the working window" do
+      day = build(:sla_calendar_day, start_minute: 540, end_minute: 1080, break_start_minute: 780, break_end_minute: 840)
+      assert day.valid?
+    end
+
+    should "be valid with no break configured" do
+      day = build(:sla_calendar_day, break_start_minute: nil, break_end_minute: nil)
+      assert day.valid?
+    end
+
+    should "reject a break start without a break end" do
+      day = build(:sla_calendar_day, start_minute: 540, end_minute: 1080, break_start_minute: 780, break_end_minute: nil)
+      assert_not day.valid?
+    end
+
+    should "reject a break end without a break start" do
+      day = build(:sla_calendar_day, start_minute: 540, end_minute: 1080, break_start_minute: nil, break_end_minute: 840)
+      assert_not day.valid?
+    end
+
+    should "reject a break end that is not after the break start" do
+      day = build(:sla_calendar_day, start_minute: 540, end_minute: 1080, break_start_minute: 840, break_end_minute: 840)
+      assert_not day.valid?
+    end
+
+    should "reject a break that starts before the working window" do
+      day = build(:sla_calendar_day, start_minute: 540, end_minute: 1080, break_start_minute: 480, break_end_minute: 840)
+      assert_not day.valid?
+    end
+
+    should "reject a break that ends after the working window" do
+      day = build(:sla_calendar_day, start_minute: 540, end_minute: 1080, break_start_minute: 780, break_end_minute: 1140)
+      assert_not day.valid?
+    end
+  end
+
+  context "#segments" do
+    should "return a single full-day segment when no break is configured" do
+      day = build(:sla_calendar_day, start_minute: 540, end_minute: 1080, break_start_minute: nil, break_end_minute: nil)
+      assert_equal [ [ 540, 1080 ] ], day.segments
+    end
+
+    should "return two segments split around the break when configured" do
+      day = build(:sla_calendar_day, start_minute: 540, end_minute: 1080, break_start_minute: 780, break_end_minute: 840)
+      assert_equal [ [ 540, 780 ], [ 840, 1080 ] ], day.segments
+    end
   end
 end

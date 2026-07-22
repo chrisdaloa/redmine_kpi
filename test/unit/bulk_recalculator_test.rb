@@ -35,4 +35,23 @@ class RedmineSla::BulkRecalculatorTest < ActiveSupport::TestCase
     metric = RedmineSla::IssueMetric.find_by(issue_id: issue.id)
     assert_not_nil metric.first_response_due_at
   end
+
+  should "repopulate acknowledgement_elapsed_minutes and attesa minutes on existing data" do
+    Setting.plugin_redmine_sla = Setting.plugin_redmine_sla.merge("attesa_cliente_status_ids" => [ 10 ])
+    created_at = Time.zone.local(2026, 7, 1, 9, 0) # Wednesday
+
+    issue = create(:issue, created_on: created_at)
+    journal = create(:journal, journalized: issue, user: User.find(1), notes: "", created_on: created_at + 30.minutes)
+    create(:journal_detail, journal: journal, property: "attr", prop_key: "status_id", old_value: "1", value: "10")
+    another_journal = create(:journal, journalized: issue, user: User.find(1), notes: "", created_on: created_at + 1.hour)
+    create(:journal_detail, journal: another_journal, property: "attr", prop_key: "status_id", old_value: "10", value: "1")
+    issue.update_column(:status_id, 1)
+
+    RedmineSla::BulkRecalculator.call
+
+    metric = RedmineSla::IssueMetric.find_by(issue_id: issue.id)
+    assert_equal 30, metric.acknowledgement_elapsed_minutes
+    assert_equal 30, metric.attesa_cliente_minutes
+    assert_nil metric.attesa_cliente_since
+  end
 end
