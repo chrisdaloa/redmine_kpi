@@ -12,10 +12,10 @@ module RedmineSla
     validates :end_minute, numericality: { only_integer: true, greater_than: :start_minute, less_than_or_equal_to: 1440 }
     validates :break_start_minute,
       numericality: { only_integer: true, greater_than_or_equal_to: :start_minute, less_than: :end_minute },
-      allow_nil: true, if: -> { break_end_minute.present? }
+      allow_nil: true, if: -> { has_attribute?(:break_end_minute) && break_end_minute.present? }
     validates :break_end_minute,
       numericality: { only_integer: true, greater_than: :break_start_minute, less_than_or_equal_to: :end_minute },
-      allow_nil: true, if: -> { break_start_minute.present? }
+      allow_nil: true, if: -> { has_attribute?(:break_start_minute) && break_start_minute.present? }
     validate :break_bounds_are_paired
 
     # A day's working segments: a single full-day window, or two windows split
@@ -29,6 +29,7 @@ module RedmineSla
     private
 
     def break_bounds_are_paired
+      return unless has_attribute?(:break_start_minute) && has_attribute?(:break_end_minute)
       return if break_start_minute.present? == break_end_minute.present?
 
       errors.add(:break_start_minute, "must be set together with break end")

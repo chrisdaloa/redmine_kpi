@@ -67,6 +67,15 @@ class RedmineSla::SlaCalendarDayTest < ActiveSupport::TestCase
       day = build(:sla_calendar_day, start_minute: 540, end_minute: 1080, break_start_minute: 780, break_end_minute: 1140)
       assert_not day.valid?
     end
+
+    should "not raise when the break columns are not yet present on the schema" do
+      day = build(:sla_calendar_day, start_minute: 540, end_minute: 1080, break_start_minute: nil, break_end_minute: nil)
+      day.stubs(:has_attribute?).with(:break_start_minute).returns(false)
+      day.stubs(:has_attribute?).with(:break_end_minute).returns(false)
+      day.stubs(:break_start_minute).raises(NoMethodError)
+      day.stubs(:break_end_minute).raises(NoMethodError)
+      assert_nothing_raised { day.valid? }
+    end
   end
 
   context "#segments" do
