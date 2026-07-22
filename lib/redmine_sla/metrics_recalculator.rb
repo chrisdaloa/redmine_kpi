@@ -37,6 +37,13 @@ module RedmineSla
         assign_kpi(metric, kpi, calendar, reached_at.fetch(kpi))
       end
 
+      metric.acknowledgement_elapsed_minutes = elapsed_minutes(calendar, @issue.created_on, reached_at.fetch("acknowledgement"))
+
+      metric.attesa_cliente_since, metric.attesa_cliente_minutes =
+        attesa_state(status_changes, initial_status_id, @settings.attesa_cliente_status_ids, calendar)
+      metric.attesa_interna_since, metric.attesa_interna_minutes =
+        attesa_state(status_changes, initial_status_id, @settings.attesa_interna_status_ids, calendar)
+
       metric.save!
       metric
     end
@@ -88,6 +95,34 @@ module RedmineSla
       end
 
       [ paused_since, total_paused_minutes ]
+    end
+
+    # Generalization of pause_state for the (purely informational) attesa cliente/interna
+    # tracking: unlike pause_state, which accumulates raw wall-clock minutes to shift
+    # due_at, this accumulates business-hours minutes (via the calendar) and is never
+    # used to adjust a deadline.
+    def attesa_state(status_changes, initial_status_id, status_ids, calendar)
+      since = status_ids.include?(initial_status_id) ? @issue.created_on : nil
+      total_minutes = 0
+
+      status_changes.each do |detail|
+        was_in = status_ids.include?(detail.old_value.to_i)
+        now_in = status_ids.include?(detail.value.to_i)
+        if now_in && !was_in
+          since = detail.journal.created_on
+        elsif !now_in && was_in && since
+          total_minutes += calendar ? calendar.elapsed_working_minutes(since, detail.journal.created_on) : 0
+          since = nil
+        end
+      end
+
+      [ since, total_minutes ]
+    end
+
+    def elapsed_minutes(calendar, from, to)
+      return nil unless calendar && to
+
+      calendar.elapsed_working_minutes(from, to)
     end
 
     def assign_kpi(metric, kpi, calendar, reached_at)

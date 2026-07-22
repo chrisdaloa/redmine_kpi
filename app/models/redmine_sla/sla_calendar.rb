@@ -19,7 +19,7 @@ module RedmineSla
 
     def business_calendar
       RedmineSla::BusinessCalendar.new(
-        working_hours: sla_calendar_days.each_with_object({}) { |day, hours| hours[day.wday] = [ day.start_minute, day.end_minute ] },
+        working_hours: sla_calendar_days.each_with_object({}) { |day, hours| hours[day.wday] = day.segments },
         holidays: sla_holidays.pluck(:date)
       )
     end

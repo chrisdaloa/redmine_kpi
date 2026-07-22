@@ -1,4 +1,4 @@
-<%= sla_admin_tabs("general") %>
+<%= sla_settings_tabs("general") %>
 
 <p>
   <label for="settings_risk_threshold_percent"><%= l(:field_sla_risk_threshold_percent) %></label>
@@ -25,4 +25,38 @@
     </label>
   <% end %>
   <%= hidden_field_tag "settings[pause_status_ids][]", "" %>
+</p>
+
+<p>
+  <label><%= l(:field_sla_attesa_cliente_status_ids) %></label><br>
+  <% IssueStatus.all.each do |status| %>
+    <label class="block">
+      <%= check_box_tag "settings[attesa_cliente_status_ids][]", status.id, settings["attesa_cliente_status_ids"].to_a.map(&:to_s).include?(status.id.to_s), id: nil %>
+      <%= status.name %>
+    </label>
+  <% end %>
+  <%= hidden_field_tag "settings[attesa_cliente_status_ids][]", "" %>
+</p>
+
+<p>
+  <label><%= l(:field_sla_attesa_interna_status_ids) %></label><br>
+  <% IssueStatus.all.each do |status| %>
+    <label class="block">
+      <%= check_box_tag "settings[attesa_interna_status_ids][]", status.id, settings["attesa_interna_status_ids"].to_a.map(&:to_s).include?(status.id.to_s), id: nil %>
+      <%= status.name %>
+    </label>
+  <% end %>
+  <%= hidden_field_tag "settings[attesa_interna_status_ids][]", "" %>
+</p>
+
+<p>
+  <label for="settings_categoria_custom_field_id"><%= l(:field_sla_categoria_custom_field_id) %></label>
+  <%= select_tag "settings[categoria_custom_field_id]",
+                  options_for_select([ [ "", "" ] ] + ProjectCustomField.all.map { |f| [ f.name, f.id ] }, settings["categoria_custom_field_id"]) %>
+</p>
+
+<p>
+  <label for="settings_responsabile_custom_field_id"><%= l(:field_sla_responsabile_custom_field_id) %></label>
+  <%= select_tag "settings[responsabile_custom_field_id]",
+                  options_for_select([ [ "", "" ] ] + ProjectCustomField.all.map { |f| [ f.name, f.id ] }, settings["responsabile_custom_field_id"]) %>
 </p>

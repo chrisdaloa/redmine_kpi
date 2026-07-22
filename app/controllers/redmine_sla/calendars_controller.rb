@@ -19,7 +19,9 @@ module RedmineSla
         @calendar.sla_calendar_days.create!(
           wday: day_params[:wday],
           start_minute: minutes_from_hhmm(day_params[:start]),
-          end_minute: minutes_from_hhmm(day_params[:end])
+          end_minute: minutes_from_hhmm(day_params[:end]),
+          break_start_minute: minutes_from_hhmm(day_params[:break_start]),
+          break_end_minute: minutes_from_hhmm(day_params[:break_end])
         )
       end
 
@@ -49,6 +51,8 @@ module RedmineSla
     end
 
     def minutes_from_hhmm(value)
+      return nil if value.blank?
+
       hours, minutes = value.split(":").map(&:to_i)
       (hours * 60) + minutes
     end

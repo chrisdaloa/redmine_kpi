@@ -1,6 +1,6 @@
 <h2><%= l(:label_sla_rules) %></h2>
 
-<%= sla_admin_tabs("rules") unless @project %>
+<%= sla_settings_tabs("rules", @project) %>
 
 <table class="list">
   <thead>
@@ -34,18 +34,16 @@
   <p>
     <label><%= l(:field_tracker) %></label>
     <%= select_tag "sla_rule[tracker_id]", options_for_select([ [ l(:label_sla_any), 0 ] ] + @trackers.map { |t| [ t.name, t.id ] }) %>
-  </p>
-  <p>
+
     <label><%= l(:field_priority) %></label>
     <%= select_tag "sla_rule[priority_id]", options_for_select([ [ l(:label_sla_any), 0 ] ] + @priorities.map { |p| [ p.name, p.id ] }) %>
-  </p>
-  <p>
+
     <label><%= l(:field_sla_kpi) %></label>
     <%= select_tag "sla_rule[kpi]", options_for_select(RedmineSla::SlaRule::KPIS.map { |k| [ l("label_sla_kpi_#{k}"), k ] }) %>
-  </p>
-  <p>
+
     <label><%= l(:field_sla_target_minutes) %></label>
     <%= text_field_tag "sla_rule[target_minutes]", nil, size: 6 %>
+
+    <%= submit_tag l(:label_sla_add_rule) %>
   </p>
-  <%= submit_tag l(:label_sla_add_rule) %>
 <% end %>

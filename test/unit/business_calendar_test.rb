@@ -5,14 +5,30 @@ require_relative "../test_helper"
 class RedmineSla::BusinessCalendarTest < ActiveSupport::TestCase
   # Monday-Friday 9:00-17:00, except Wednesday which is only 9:00-13:00.
   # wday: 0=Sunday .. 6=Saturday
+  # working_hours maps wday => an array of [start_minute, end_minute] segments,
+  # so a day can have a lunch break by listing more than one segment.
   def full_week_calendar(holidays: [])
     RedmineSla::BusinessCalendar.new(
       working_hours: {
-        1 => [ 9 * 60, 17 * 60 ],
-        2 => [ 9 * 60, 17 * 60 ],
-        3 => [ 9 * 60, 13 * 60 ],
-        4 => [ 9 * 60, 17 * 60 ],
-        5 => [ 9 * 60, 17 * 60 ]
+        1 => [ [ 9 * 60, 17 * 60 ] ],
+        2 => [ [ 9 * 60, 17 * 60 ] ],
+        3 => [ [ 9 * 60, 13 * 60 ] ],
+        4 => [ [ 9 * 60, 17 * 60 ] ],
+        5 => [ [ 9 * 60, 17 * 60 ] ]
+      },
+      holidays: holidays
+    )
+  end
+
+  # Monday-Friday 9:00-13:00, 14:00-18:00 (one-hour lunch break).
+  def split_shift_calendar(holidays: [])
+    RedmineSla::BusinessCalendar.new(
+      working_hours: {
+        1 => [ [ 9 * 60, 13 * 60 ], [ 14 * 60, 18 * 60 ] ],
+        2 => [ [ 9 * 60, 13 * 60 ], [ 14 * 60, 18 * 60 ] ],
+        3 => [ [ 9 * 60, 13 * 60 ], [ 14 * 60, 18 * 60 ] ],
+        4 => [ [ 9 * 60, 13 * 60 ], [ 14 * 60, 18 * 60 ] ],
+        5 => [ [ 9 * 60, 13 * 60 ], [ 14 * 60, 18 * 60 ] ]
       },
       holidays: holidays
     )
@@ -88,6 +104,28 @@ class RedmineSla::BusinessCalendarTest < ActiveSupport::TestCase
     end
   end
 
+  context "add_working_minutes with a lunch break" do
+    should "add minutes fully inside the morning segment" do
+      calendar = split_shift_calendar
+      result = calendar.add_working_minutes(local(2026, 7, 6, 9, 0), 60) # Monday
+      assert_equal local(2026, 7, 6, 10, 0), result
+    end
+
+    should "skip the lunch break when the remainder spills past the morning segment" do
+      calendar = split_shift_calendar
+      # Monday 12:00 -> 60 min available before 13:00, 30 min remaining
+      # skips the 13:00-14:00 break and lands at 14:30.
+      result = calendar.add_working_minutes(local(2026, 7, 6, 12, 0), 90)
+      assert_equal local(2026, 7, 6, 14, 30), result
+    end
+
+    should "snap a start during the break to the start of the afternoon segment" do
+      calendar = split_shift_calendar
+      result = calendar.add_working_minutes(local(2026, 7, 6, 13, 30), 30)
+      assert_equal local(2026, 7, 6, 14, 30), result
+    end
+  end
+
   context "elapsed_working_minutes" do
     should "return zero when start and end are the same instant" do
       calendar = full_week_calendar
@@ -103,6 +141,16 @@ class RedmineSla::BusinessCalendarTest < ActiveSupport::TestCase
         local(2026, 7, 8, 10, 0)
       )
       assert_equal 600, result
+    end
+
+    should "exclude a lunch break spanned by the interval" do
+      calendar = split_shift_calendar
+      # Monday 12:00-15:00 minus the 13:00-14:00 break = 120 minutes.
+      result = calendar.elapsed_working_minutes(
+        local(2026, 7, 6, 12, 0),
+        local(2026, 7, 6, 15, 0)
+      )
+      assert_equal 120, result
     end
   end
 end
